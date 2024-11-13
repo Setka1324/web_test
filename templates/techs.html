@@ -1,0 +1,185 @@
+{% extends "navbar.html" %}
+
+{% block unique_body %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Headquarters</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link href="https://fonts.cdnfonts.com/css/3d" rel="stylesheet">
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
+    <script src="https://unpkg.com/@mapbox/mapbox-sdk/umd/mapbox-sdk.min.js"></script>
+    <link href="./static/style.css" rel="stylesheet">
+    <style>
+        .sidebar {
+            margin: 0px;
+            border: 1px solid #ddd; 
+            padding: 15px; 
+            border-radius: 5px; 
+            width: 350px; 
+            height: auto; 
+        }
+        #map {
+            width: 700px; 
+            height: 700px; 
+        }
+        .sidebar-container {
+            padding-right: 20px; 
+        }
+    </style>
+</head>
+
+    
+
+<div class="cover-container-1 d-flex  p-3 mx-auto flex-column">
+    
+    <main role="main" class="inner cover align-items-center" >
+        <div class="d-flex w-100">
+            <div class="p-3 flex-shrink-0 sidebar hui">
+                <h2>Filter by </h2>
+                <h2>technologies sold:</h2>
+                <div id="filters" class="text-start">
+                    <!-- Filters will be appended here -->
+                </div>
+            </div>
+            <div id="map" ></div>
+        </div>
+    </main>
+    
+</div>
+
+<script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiY2FjdHVzMTMyNCIsImEiOiJjbHgwcmFzMnIwNGNlMmlzOXoxbTQ3aXplIn0.J8ERxO3q1K5PvCCywfiztA';
+    const mapboxClient = mapboxSdk({ accessToken: mapboxgl.accessToken });
+    var map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [0, 20],
+        zoom: 2
+    });
+
+    function addMarkers(data) {
+        data.forEach(company => {
+            mapboxClient.geocoding
+                .forwardGeocode({
+                    query: `${company.hq_city}, ${company.hq_country}`,
+                    autocomplete: false,
+                    limit: 1
+                })
+                .send()
+                .then((response) => {
+                    if (
+                        !response ||
+                        !response.body ||
+                        !response.body.features ||
+                        !response.body.features.length
+                    ) {
+                        console.error('Invalid response:');
+                        console.error(response);
+                        return;
+                    }
+                    const feature = response.body.features[0];
+                    new mapboxgl.Marker()
+                        .setLngLat(feature.center)
+                        .setPopup(new mapboxgl.Popup({ offset: 25 }).setText(`${company.company_name}: ${company.hq_city}, ${company.hq_country}`))
+                        .addTo(map);
+                })
+                .catch(err => {
+                    console.error(`Geocoding error for ${company.hq_city}, ${company.hq_country}: `, err);
+                });
+        });
+    }
+
+    function fetchHeadquarters() {
+        fetch('/api/headquarters')
+            .then(response => response.json())
+            .then(data => {
+                addMarkers(data);
+            });
+    }
+
+    function fetchTechnologies() {
+        fetch('/api/technologies')
+            .then(response => response.json())
+            .then(data => {
+                const filters = document.getElementById('filters');
+                data.forEach(tech => {
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = tech;
+                    checkbox.name = 'tech';
+                    checkbox.value = tech;
+
+                    const label = document.createElement('label');
+                    label.htmlFor = tech;
+                    label.classList.add('text-filter')
+                    label.appendChild(document.createTextNode(tech));
+
+                    const listItem = document.createElement('div');
+                    listItem.appendChild(checkbox);
+                    listItem.appendChild(label);
+
+                    filters.appendChild(listItem);
+                });
+            });
+    }
+
+    function trackUserAction(action, detail) {
+        fetch('/api/track', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                page_name: document.title,
+                action: action,
+                detail: detail
+            })
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', (event) => {
+        fetchHeadquarters();
+        fetchTechnologies();
+
+        document.getElementById('filters').addEventListener('change', () => {
+            const checked = Array.from(document.querySelectorAll('input[name=tech]:checked')).map(el => el.value);
+            trackUserAction('filter_change', checked.join(','));
+            fetch(`/api/headquarters?technologies=${checked.join(',')}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Remove existing markers
+                    document.querySelectorAll('.mapboxgl-marker').forEach(marker => marker.remove());
+                    
+                    // Add new markers
+                    addMarkers(data);
+                });
+        });
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+        trackPage('page_load');
+    });
+
+    window.addEventListener('beforeunload', () => {
+        trackPage('page_unload');
+    });
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<script>
+function trackPage(action) {
+    fetch('/api/track', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            page_name: document.title,
+            action: action
+        })
+    });
+}
+</script>
+
+{% endblock %}

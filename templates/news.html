@@ -1,0 +1,74 @@
+{% extends "navbar.html" %}
+
+{% block unique_body %}
+<title>News</title>
+<main role="main" class="inner cover align-items-center hui">
+    <div class="container">
+        <h1 class="cover-heading">News</h1>
+        <p class="lead">Select a country to view incidents:</p>
+        <select id="countrySelect" class="form-select">
+            <option value="" selected disabled>Select a country</option>
+        </select>
+        <div id="incidents" class="mt-4">
+            <!-- Incidents will be displayed here -->
+        </div>
+    </div>
+</main>
+
+<style>
+    #incidents ul {
+        padding-left: 20px;
+        list-style-type: disc;
+        text-align: left;
+        font-family: 'Times New Roman', Times, serif; 
+    }
+
+    .incident {
+        font-family: 'Times New Roman', Times, serif; 
+        text-align: left; 
+        font-size: 1.25rem; 
+    }
+
+    h1, .lead, .form-select {
+        font-family: 'Roboto', sans-serif;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', (event) => {
+    fetch('/api/countries')
+        .then(response => response.json())
+        .then(data => {
+            const countrySelect = document.getElementById('countrySelect');
+            data.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country.Country;
+                option.textContent = country.Country;
+                countrySelect.appendChild(option);
+            });
+        });
+
+    document.getElementById('countrySelect').addEventListener('change', (event) => {
+        const country = event.target.value;
+        fetch(`/api/incidents?country=${encodeURIComponent(country)}`)
+            .then(response => response.json())
+            .then(data => {
+                const incidentsDiv = document.getElementById('incidents');
+                incidentsDiv.innerHTML = '';
+                if (data.length > 0) {
+                    const ul = document.createElement('ul');
+                    data.forEach(incident => {
+                        const li = document.createElement('li');
+                        li.classList.add("incident");
+                        li.textContent = incident.Incident;
+                        ul.appendChild(li);
+                    });
+                    incidentsDiv.appendChild(ul);
+                } else {
+                    incidentsDiv.textContent = 'No incidents found for the selected country.';
+                }
+            });
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "navbar.html" %}
+
+{% block unique_body %}
+<title>Compliance</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+<section class="py-5 hui">
+    <div class="container">
+        <div class="text-center">
+            <h2 class="display-5 fw-bold mb-3">Company Compliance Standards</h2>
+            <input type="text" id="companySearch" class="form-control mb-3" placeholder="Search for a company..." list="companyList" oninput="fetchCompliance()">
+            <datalist id="companyList"></datalist>
+        </div>
+        <div class="mt-5" id="complianceResults">
+            <!-- Compliance standards will be displayed here -->
+        </div>
+    </div>
+</section>
+
+<style>
+    body {
+        font-family: 'Roboto', sans-serif;
+    }
+
+    
+    #complianceResults ul {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center; 
+        padding: 0;
+        list-style-type: none;
+    }
+
+    #complianceResults li {
+        margin: 20px; 
+        font-size: 1.5rem; 
+        text-align: center; 
+    }
+
+    #complianceResults li .compliance-value {
+        font-size: 1.25rem; 
+        display: block; 
+        margin-top: 5px; 
+    }
+
+    
+    .compliance-value-yes {
+        color: green;
+        font-weight: bold;
+    }
+
+    .compliance-value-no {
+        color: red;
+        font-weight: bold;
+    }
+
+    
+    .form-control, h2 {
+        font-size: 1.5rem;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', (event) => {
+    fetch('/api/companies')
+        .then(response => response.json())
+        .then(data => {
+            const datalist = document.getElementById('companyList');
+            data.forEach(company => {
+                const option = document.createElement('option');
+                option.value = company.company_name;
+                datalist.appendChild(option);
+            });
+        });
+});
+
+function fetchCompliance() {
+    const companyName = document.getElementById('companySearch').value;
+    if (!companyName) {
+        return;
+    }
+
+    fetch(`/api/compliance?company_name=${encodeURIComponent(companyName)}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok ' + response.statusText);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Compliance data:', data);  // Debugging: Log the data
+            const resultsDiv = document.getElementById('complianceResults');
+            resultsDiv.innerHTML = '';
+            if (data.length === 0) {
+                resultsDiv.innerHTML = '<p>No compliance standards found for the selected company.</p>';
+            } else {
+                const list = document.createElement('ul');
+                data.forEach(item => {
+                    const complianceClass = item.compliant === 'Yes' ? 'compliance-value-yes' : 'compliance-value-no';
+                    const listItem = document.createElement('li');
+                    if (item.standard === 'CSR' && item.compliant === 'Yes' && item.csr_value) {
+                        listItem.innerHTML = `${item.standard}<a href="${item.csr_value}" class="compliance-value ${complianceClass}" target="_blank">${item.compliant}</a>`;
+                    } else {
+                        listItem.innerHTML = `${item.standard}<span class="compliance-value ${complianceClass}">${item.compliant}</span>`;
+                    }
+                    list.appendChild(listItem);
+                });
+                resultsDiv.appendChild(list);
+            }
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            const resultsDiv = document.getElementById('complianceResults');
+            resultsDiv.innerHTML = '<p>An error occurred while fetching the compliance standards.</p>';
+        });
+}
+</script>
+{% endblock %}

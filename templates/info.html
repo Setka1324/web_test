@@ -1,0 +1,49 @@
+{% extends "navbar.html" %}
+
+{% block unique_body %}
+<title>Info</title>
+<section class="py-5 hui">
+    <div class="container">
+        <div class="text-center">
+            <span class="text-muted">Our Story</span>
+            <h2 class="display-5 fw-bold mb-3">What can you find here?</h2>
+        </div>
+        <div class="row gx-5">
+            <div class="col-md-4">
+                <div class="lead text-center text-md-start">
+                    <h3>News</h3>
+                    <p>Stay updated with the latest incidents and happenings around the world by selecting your country of interest.</p>
+                    <a href="news" class="btn btn-lg btn-secondary btn-no-padding">News</a>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="lead text-center text-md-start">
+                    <h3>Map</h3>
+                    <p>Explore our interactive map to view the headquarters and operations of various companies and their technologies.</p>
+                    <a href="techs" class="btn btn-lg btn-secondary btn-no-padding">Map</a>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="lead text-center text-md-start">
+                    <h3>Compliance</h3>
+                    <p>Check the compliance standards of different companies and see if they meet the necessary regulations and guidelines.</p>
+                    <a href="compliance" class="btn btn-lg btn-secondary btn-no-padding">Compliance</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .btn-no-padding {
+        padding-left: 0 !important; 
+        width: 100%; 
+        text-align: center; 
+    }
+    
+    .lead a {
+        display: inline-block; 
+        margin-top: 10px; 
+    }
+</style>
+{% endblock %}
